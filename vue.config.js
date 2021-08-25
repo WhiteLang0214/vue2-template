@@ -19,7 +19,7 @@ module.exports = {
     },
     proxy: {
       '/api': {
-        target: 'http://localhost/api',
+        target: 'https://apis.map.qq.com/ws/direction/v1/driving',
         changeOrigin: true, // 允许websockets跨域
         // ws: true,
         pathRewrite: {

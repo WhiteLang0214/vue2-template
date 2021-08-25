@@ -24,16 +24,17 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use((response) => {
   const { status, data } = response;
   if (status === 200) {
-    switch (data.code) {
-      case 200:
-        return Promise.resolve(data);
-        break;
+    return Promise.resolve(data);
+    // switch (data.code) {
+    //   case 200:
+    //     return Promise.resolve(data);
+    //     break;
     
-      default:
-        console.log('请求失败:', data.msg);
-        return Promise.reject(response);
-        break;
-    }
+    //   default:
+    //     console.log('请求失败:', data.msg);
+    //     return Promise.reject(response);
+    //     break;
+    // }
   } else {
     return Promise.reject(response)
   }
