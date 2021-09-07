@@ -1,8 +1,8 @@
 <template>
-  <div class="home">
-    <button @click="save">保存</button>
-    <button @click="addMarker">添加标记</button>
-    <div id="container" style="width: 100%; height: 500"></div>
+  <div class="home" style="width: 100%; height: 500px">
+    <!-- <button @click="save">保存</button>
+    <button @click="addMarker">添加标记</button> -->
+    <div id="container" style="width: 100%; height: 100%"></div>
     <!-- <img alt="Vue logo" src="../assets/logo.png" />
     <HelloWorld msg="Welcome to Your Vue.js App" />
     <test /> -->
@@ -14,29 +14,34 @@
 // import HelloWorld from '@/components/HelloWorld.vue'
 
 // 线路数据
-var geometries = [
-    {
-        id: 111,
-        'styleId': 'style_blue',//绑定样式名
-        paths: [new window.TMap.LatLng(39.095787,117.147111), new window.TMap.LatLng(39.095066,117.148579), new window.TMap.LatLng(39.093696,117.149032)]
-    },
-    {
-        id: 222,
-        'styleId': 'style_blue',//绑定样式名
-        paths: [new window.TMap.LatLng(39.095513,117.145919), new window.TMap.LatLng(39.093349,117.143896)]
-    }
-];
+let geometriesGlobal = [
+  {
+    id: 111,
+    styleId: 'style_blue', // 绑定样式名
+    paths: [
+      new window.TMap.LatLng(39.095787, 117.147111),
+      new window.TMap.LatLng(39.095066, 117.148579),
+      new window.TMap.LatLng(39.093696, 117.149032)
+    ]
+  },
+  {
+    id: 222,
+    styleId: 'style_blue', // 绑定样式名
+    paths: [new window.TMap.LatLng(39.095513, 117.145919), new window.TMap.LatLng(39.093349, 117.143896)]
+  }
+]
 
 // 点标记
-var markerPaths = [];
-for(let i=0; i<geometries.length; i++) {
-    const item = geometries[i].paths;
-    for(let j=0; j<item.length; j++) {
-        markerPaths.push({
-            position: item[j],
-            content: '站点'
-        })
-    }
+const markerPaths = []
+for (let i = 0; i < geometriesGlobal.length; i++) {
+  const item = geometriesGlobal[i].paths
+  for (let j = 0; j < item.length; j++) {
+    markerPaths.push({
+      position: item[j],
+      content: '站点',
+      styleId: 'marker_active'
+    })
+  }
 }
 
 export default {
@@ -57,7 +62,7 @@ export default {
         rotation: 45
       },
       TMap: window.TMap,
-      mapKey: '',
+      mapKey: 'GINBZ-DY76I-KVRGG-5NEW3-UMZL6-WDFQE',
       editor: null, // 图层编辑器
       markerLayer: null, // 点标记图层
       polylineLayer: null, // 折线图层
@@ -66,22 +71,23 @@ export default {
       markerArr: [
         {
           id: 0,
-          position: new window.TMap.LatLng(39.133228,117.132267),
+          position: new window.TMap.LatLng(39.133228, 117.132267),
           styleId: 'circle_marker'
         },
         {
           id: 1,
-          position: new window.TMap.LatLng(39.087986,117.121756),
+          position: new window.TMap.LatLng(39.087986, 117.121756),
           styleId: 'circle_marker'
         }
-      ]
+      ],
+      markerGeos: []
     }
   },
   mounted() {
     this.initMap()
     this.initMapCenter()
     this.initMarker()
-    this.initPolyLine(geometries)
+    this.initPolyLine(geometriesGlobal)
     this.initLabel()
     this.initEditor()
     this.initInfoWindow()
@@ -91,7 +97,7 @@ export default {
     this.destroy()
   },
   methods: {
-    //地图初始化函数，本例取名为init，开发者可根据实际情况定义
+    // 地图初始化函数，本例取名为init，开发者可根据实际情况定义
     initMap() {
       // 定义地图中心点坐标
       const center = this.LATLNG(this.center.lat, this.center.lng)
@@ -100,38 +106,66 @@ export default {
         zoom: 15.2, // 设置地图缩放级别
         pitch: 43.5, // 设置俯仰角
         rotation: 45 // 设置地图旋转角度
-      };
+      }
       const dom = document.getElementById('container')
       // 调用 TMap.Map() 构造函数创建地图
       this.map = new this.TMap.Map(dom, mapConfig)
       // Map实例创建后，通过on方法绑定点击事件
-      this.map.on("click",  this.clickMapHandler)
+      this.map.on('click', this.clickMapHandler)
+      this.map.on('zoom', this.handleZoom)
+    },
+    handleZoom() {
+      const zoom = this.map.getZoom()
+      console.log('zoom---', zoom, this.markerLayer.getStyles())
+
+      let width = 25
+      let height = 25
+
+      if (zoom >= 14) {
+        width = 48
+        height = 48
+      } else if (zoom < 14 && zoom >= 10) {
+        width = 25
+        height = 25
+      } else {
+        width = 0.1
+        height = 0.1
+      }
+
+      this.markerLayer.setStyles({
+        marker_active: this.MARKERSTYLE({
+          width,
+          height,
+          anchor: { x: 16, y: 32 },
+          src: 'https://mapapi.qq.com/web/lbs/javascriptGL/demo/img/marker-pink.png',
+          geometries: markerPaths
+        })
+      })
     },
     // 设置地图中心点
     initMapCenter() {
       // 获取地图中心点
-      const centerLatLng = this.map.getCenter();
+      const centerLatLng = this.map.getCenter()
       this.map.setCenter(this.LATLNG(centerLatLng.lat, centerLatLng.lng))
     },
     // 销毁地图
     destroy() {
-      if (this.map) this.map.destroy();
+      if (this.map) this.map.destroy()
     },
     // 点标记
-    initMarker() {
-      console.log('markerPaths---', markerPaths)
+    initMarker(width, height) {
       const config = {
         map: this.map,
         draggable: true,
-        //样式定义
-        styles: this.setMarkerStyle(),
-        //点标记数据数组
+        // 样式定义
+        styles: this.setMarkerStyle(width, height),
+        // 点标记数据数组
         geometries: markerPaths,
         pointGeometry: this.markerArr
       }
-      this.markerLayer = this.MULTIMARKER(config);
-      //监听marker点击事件
-      this.markerLayer.on("mousemove", this.mouseMoveMarkerHandler)
+      this.markerLayer = this.MULTIMARKER(config)
+      // 监听marker点击事件
+      this.markerLayer.on('mousemove', this.mouseMoveMarkerHandler)
     },
     // 折线
     initPolyLine(geometries) {
@@ -150,58 +184,58 @@ export default {
         styles: this.setLabelStyle(),
         geometries: markerPaths
       }
-      new this.TMap.MultiLabel(config);
+      this.MULTILABEL(config)
     },
     // 初始化infoWindow
     initInfoWindow() {
       this.infoWindow = this.INFOWINDOW({
-          map: this.map,
-          position: this.LATLNG(0, 0),
-          offset: { x: 0, y: -32 } //设置信息窗相对position偏移像素
-      });
+        map: this.map,
+        position: this.LATLNG(0, 0),
+        offset: { x: 0, y: -32 } // 设置信息窗相对position偏移像素
+      })
       this.infoWindow.close() // 初始关闭信息窗关闭
     },
     // 设置点标记样式
     setMarkerStyle() {
       return {
-        "marker": this.MARKERSTYLE({}),
-        "marker_active": this.MARKERSTYLE({
-          "src": "https://mapapi.qq.com/web/lbs/javascriptGL/demo/img/marker-pink.png"
+        marker: this.MARKERSTYLE({}),
+        marker_active: this.MARKERSTYLE({
+          src: 'https://mapapi.qq.com/web/lbs/javascriptGL/demo/img/marker-pink.png'
         }),
-        'circle_marker': this.MARKERSTYLE({
-          "src": "https://mapapi.qq.com/web/lbs/javascriptGL/demo/img/marker-pink.png"
+        circle_marker: this.MARKERSTYLE({
+          src: 'https://mapapi.qq.com/web/lbs/javascriptGL/demo/img/marker-pink.png'
         })
       }
     },
     // 设置线样式
     setLineStyle() {
       return {
-        'style_blue_active': this.LINESTYLE({
-          'color': '#2b9ce0', //线填充色
-          'width': 9, //折线宽度
-          'borderWidth': 5, //边线宽度
-          'borderColor': '#FFF', //边线颜色
-          'lineCap': 'round', //线端头方式
+        style_blue_active: this.LINESTYLE({
+          color: '#2b9ce0', // 线填充色
+          width: 9, // 折线宽度
+          borderWidth: 5, // 边线宽度
+          borderColor: '#FFF', // 边线颜色
+          lineCap: 'round' // 线端头方式
         }),
-        'style_blue': this.LINESTYLE({
-          'color': '#3777FF', //线填充色
-          'width': 8, //折线宽度
-          'borderWidth': 5, //边线宽度
-          'borderColor': '#FFF', //边线颜色
-          'lineCap': 'round', //线端头方式
+        style_blue: this.LINESTYLE({
+          color: '#3777FF', // 线填充色
+          width: 8, // 折线宽度
+          borderWidth: 5, // 边线宽度
+          borderColor: '#FFF', // 边线颜色
+          lineCap: 'round' // 线端头方式
         })
       }
     },
     // 设置label
     setLabelStyle() {
       return {
-        'label': this.LABELSTYLE({
-            'color': '#3777FF', //颜色属性
-            'size': 24, //文字大小属性
-            'offset': { x: 200, y: 0 }, //文字偏移属性单位为像素
-            'angle': 0, //文字旋转属性
-            'alignment': 'center', //文字水平对齐属性
-            'verticalAlignment': 'middle' //文字垂直对齐属性
+        label: this.LABELSTYLE({
+          color: '#3777FF', // 颜色属性
+          size: 24, // 文字大小属性
+          offset: { x: 200, y: 0 }, // 文字偏移属性单位为像素
+          angle: 0, // 文字旋转属性
+          alignment: 'center', // 文字水平对齐属性
+          verticalAlignment: 'middle' // 文字垂直对齐属性
         })
       }
     },
@@ -212,6 +246,10 @@ export default {
     // 绘制折线
     MULTIPOLYLINE(config) {
       return new this.TMap.MultiPolyline(config)
+    },
+    // 文本
+    MULTILABEL(config) {
+      return new this.TMap.MultiLabel(config)
     },
     INFOWINDOW(config) {
       return new this.TMap.InfoWindow(config)
@@ -240,15 +278,15 @@ export default {
     clickMapHandler(evt) {
       this.setClickEsc(27)
       this.closeInfoWindow()
-      var lat = evt.latLng.getLat().toFixed(6);
-      var lng = evt.latLng.getLng().toFixed(6);
-      console.log("您点击map的坐标是："+ lat + "," + lng, evt);
+      const lat = evt.latLng.getLat().toFixed(6)
+      const lng = evt.latLng.getLng().toFixed(6)
+      console.log(`您点击map的坐标是： ${lat},${lng},${evt}`)
       // 添加点标记
-      //监听点击事件添加marker
+      // 监听点击事件添加marker
       // markerLayer.add({
       // 	position: evt.latLng,
       //     "title": "站点"
-      // });  
+      // });
     },
     // 鼠标点击点标记，显示弹窗信息
     mouseMoveMarkerHandler(evt) {
@@ -270,11 +308,12 @@ export default {
       // 初始化几何图形及编辑器
       this.editor = this.TOOLGEOMETRYEDITOR({
         map: this.map, // 编辑器绑定的地图对象
-        overlayList: [ // 可编辑图层
+        overlayList: [
+          // 可编辑图层
           {
             overlay: this.polylineLayer,
             id: 'polyline',
-            selectedStyleId: "style_blue_active"  // 被选中的line会变为高亮样式
+            selectedStyleId: 'style_blue_active' // 被选中的line会变为高亮样式
           }
         ],
         actionMode: this.TMap.tools.constants.EDITOR_ACTION.INTERACT, // 编辑器的工作模式 编辑
@@ -283,11 +322,11 @@ export default {
         selectable: true, // 开启点选功能
         snappable: true // 开启吸附
       })
-      
+
       // 激活编辑
-      this.editor.setActiveOverlay('polyline');
+      this.editor.setActiveOverlay('polyline')
       // 监听绘制结束事件，获取绘制几何图形
-      this.editor.on('draw_complete', this.editorDraw);
+      this.editor.on('draw_complete', this.editorDraw)
       // 修改完成结束事件
       this.editor.on('adjust_complete', this.editorEdit)
       // 删除完成结束事件
@@ -299,11 +338,11 @@ export default {
     },
     // 图层比那集-绘制完成回调
     editorDraw(geometry) {
-      console.log('监听绘制结束事件---', geometry);
+      console.log('监听绘制结束事件---', geometry)
     },
     // 图层编辑-修改完成回调
     editorEdit(geometry) {
-      console.log('修改结束事件---', geometry);
+      console.log('修改结束事件---', geometry)
       this.editLineGeometries = geometry
       this.closeInfoWindow()
       // this.removePolyline(geometry.id);
@@ -322,31 +361,30 @@ export default {
       // to 起点，终点
       // waypoints 途径点，最大支持16个 lat1,lng1; lat2, lng2
       // plate_number 车牌号，对限行区域进行避让
-      const { paths } = geometry;
-      const pathLen = paths.length;
-      const from = `${paths[0].lat},${paths[0].lng}`;
-      const to = `${paths[pathLen-1].lat},${paths[pathLen-1].lng}`;
-      const waypointsTmp = paths.slice(1, pathLen-1);
-      let waypoints = '';
-      for(let i=0; i< waypointsTmp.length; i++) {
+      const { paths } = geometry
+      const pathLen = paths.length
+      const from = `${paths[0].lat},${paths[0].lng}`
+      const to = `${paths[pathLen - 1].lat},${paths[pathLen - 1].lng}`
+      const waypointsTmp = paths.slice(1, pathLen - 1)
+      let waypoints = ''
+      for (let i = 0; i < waypointsTmp.length; i++) {
         waypoints += `${waypointsTmp[i].lat},${waypointsTmp[i].lng};`
       }
       waypoints = waypoints.replace(/;$/gi, '')
       const policy = 'LEAST_TIME' // [默认]参考实时路况，时间最短
 
-      this.sendAjax({from, to, waypoints, policy})
+      this.sendAjax({ from, to, waypoints, policy })
     },
     // 调用api 根据修改后的坐标参数，获取路线规划的坐标数据
-    async sendAjax({ from, to, waypoints, policy}) {
-      const url = `/api/?from=${from}&to=${to}&output=json&key=${this.mapKey}&waypoints=${waypoints}&policy=${policy}`;
+    async sendAjax({ from, to, waypoints, policy }) {
+      const url = `/api/?from=${from}&to=${to}&output=json&key=${this.mapKey}&waypoints=${waypoints}&policy=${policy}`
       // Make a request for a user with a given ID
-      const res = await this.$get(url);
-      if (res.status == 500) {
-        alert(res.message)
+      const res = await this.$get(url)
+      if (res.status === 500) {
         return
       }
-      const routeResult = res.result.routes;
-     
+      const routeResult = res.result.routes
+
       // const routeResult = [
       //   {
       //       "mode":"DRIVING",
@@ -505,32 +543,31 @@ export default {
     },
     // 处理修改线路返回的坐标数据集合
     dealPolyLineList(coors) {
-      //从结果中取出路线坐标串
-      const pl = [], paths = [];
-      //坐标解压（返回的点串坐标，通过前向差分进行压缩，因此需要解压）
-      const kr = 1000000;
-      for (let i = 2; i < coors.length; i++) {
-        coors[i] = Number(coors[i - 2]) + Number(coors[i]) / kr;
+      const cloneCoors = coors
+      // 从结果中取出路线坐标串
+      const pl = []
+      const paths = []
+      // 坐标解压（返回的点串坐标，通过前向差分进行压缩，因此需要解压）
+      const kr = 1000000
+      for (let i = 2; i < cloneCoors.length; i++) {
+        cloneCoors[i] = Number(cloneCoors[i - 2]) + Number(cloneCoors[i]) / kr
       }
-      //将解压后的坐标生成LatLng数组
-      for (let i = 0; i < coors.length; i += 2) {
-        paths.push(this.LATLNG(coors[i], coors[i+1]))
+      // 将解压后的坐标生成LatLng数组
+      for (let i = 0; i < cloneCoors.length; i += 2) {
+        paths.push(this.LATLNG(cloneCoors[i], cloneCoors[i + 1]))
       }
       pl.push({
         id: this.editLineGeometries.id,
-        'styleId': 'style_blue',//绑定样式名
+        styleId: 'style_blue', // 绑定样式名
         paths
       })
       // 过滤原来的线路图层，得到未激活的图层数据
-      const newOriginGeometries = geometries.filter(i => i.id != this.editLineGeometries.id)
+      const newOriginGeometries = geometriesGlobal.filter((i) => i.id !== this.editLineGeometries.id)
       // 将旧图层和新图层重新赋值给坐标变量
-      geometries = [
-        ...newOriginGeometries,
-        ...pl
-      ]
-      
+      geometriesGlobal = [...newOriginGeometries, ...pl]
+
       // 更新标注点数据
-      this.polylineLayer.setGeometries(geometries)
+      this.polylineLayer.setGeometries(geometriesGlobal)
       // 激活编辑图层
       this.editor.setActiveOverlay('polyline')
       // 删除激活图层
@@ -539,18 +576,18 @@ export default {
     // 自定义添加键盘事件
     initKeyPress() {
       if (HTMLElement && !HTMLElement.prototype.pressKey) {
-        HTMLElement.prototype.pressKey = function(code) {
-            var evt = document.createEvent('UIEvents');
-            evt.keyCode = code;
-            evt.initEvent('keydown', true, true);
-            // 出发自定义事件
-            this.dispatchEvent(evt);
-        };
+        HTMLElement.prototype.pressKey = (code) => {
+          const evt = document.createEvent('UIEvents')
+          evt.keyCode = code
+          evt.initEvent('keydown', true, true)
+          // 出发自定义事件
+          this.dispatchEvent(evt)
+        }
       }
     },
     // 模拟键盘的esc事件
     setClickEsc(code) {
-      document.body.pressKey(code);
+      document.body.pressKey(code)
     },
     // 保存线路数据
     save() {
@@ -558,7 +595,7 @@ export default {
       // 获取图层信息
       const overlayList = this.editor.getOverlayList()
       // 获取折线图层
-      const polylineLayer = overlayList.filter(i => i.id === 'polyline')
+      const polylineLayer = overlayList.filter((i) => i.id === 'polyline')
       // 获取折线坐标集合
       const polylineLatLngList = polylineLayer[0].overlay.geometries
       console.log('获取折线坐标集合---', polylineLatLngList)
